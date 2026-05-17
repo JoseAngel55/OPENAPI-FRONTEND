@@ -49,19 +49,18 @@ interface RubricaEvaluacionProps {
   criteriosLoading: boolean
   onSubmit: (data: { id_exposicion: number; id_alumno_evaluador: number; detalles: { id_criterio: number; calificacion: number }[] }) => void
   loading?: boolean
-  onCancel: () => void
   // ✅ FIX: prop para deshabilitar submit cuando faltan selecciones externas
   disableSubmit?: boolean
 }
 
-export default function RubricaEvaluacion({ criterios, criteriosLoading, onSubmit, loading, onCancel, disableSubmit }: RubricaEvaluacionProps) {
+export default function RubricaEvaluacion({ criterios, criteriosLoading, onSubmit, loading, disableSubmit }: RubricaEvaluacionProps) {
   const schema = buildSchema(criterios)
   type FormValues = z.infer<typeof schema>
 
   const defaultValues: Record<string, number> = {}
   criterios.forEach((c) => { defaultValues[`criterio_${c.id_criterio}`] = 5.0 })
 
-  const { control, handleSubmit, watch, reset, formState: { errors } } = useForm<FormValues>({
+  const { control, handleSubmit, watch, reset } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: defaultValues as any,
   })

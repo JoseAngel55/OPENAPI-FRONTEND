@@ -29,14 +29,14 @@ export default function EvaluacionesPage() {
   // ✅ FIX: Cargar exposiciones disponibles como dropdown
   const { data: exposicionesData } = useQuery({
     queryKey: ['exposiciones-eval-select'],
-    queryFn: () => exposicionesService.listar({ page: 0, size: 200, search: '' }),
+    queryFn: () => exposicionesService.listar({ page: 0, size: 100, search: '' }),
   })
   const exposiciones = exposicionesData?.content ?? []
 
   // ✅ FIX: Cargar alumnos disponibles como dropdown
   const { data: alumnosData } = useQuery({
     queryKey: ['alumnos-eval-select'],
-    queryFn: () => alumnosService.listar({ page: 0, size: 200 }),
+    queryFn: () => alumnosService.listar({ page: 0, size: 100 }),
   })
   const alumnos = alumnosData?.content ?? []
 
@@ -202,7 +202,6 @@ export default function EvaluacionesPage() {
                 id_alumno_evaluador: idAlumno     ? (idAlumno as number)     : data.id_alumno_evaluador,
               })}
               loading={registrar.isPending}
-              onCancel={() => {}}
               disableSubmit={!idExposicion || !idAlumno}
             />
           </div>

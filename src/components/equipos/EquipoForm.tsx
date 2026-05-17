@@ -30,7 +30,7 @@ export default function EquipoForm({ initial, onSubmit, loading, onCancel }: Equ
   // listos antes de que el usuario abra el modal (igual que EquiposPage lo hace).
   const { data: gruposData, isLoading: gruposLoading } = useQuery({
     queryKey: ['grupos-select-equipos'],
-    queryFn: () => gruposService.listar({ page: 0, size: 200 }),
+    queryFn: () => gruposService.listar({ page: 0, size: 100 }),
     staleTime: 1000 * 60 * 5,
   })
   const grupos = gruposData?.content ?? []

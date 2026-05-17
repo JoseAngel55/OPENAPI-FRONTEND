@@ -1,6 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { gruposService, type GrupoInput } from '@/services/grupos.service'
 
+// El queryKey incluye page, size y nombre como en GruposPage,
+// por lo que useGrupos(0, 100, '') tiene su propia entrada en caché
+// separada de useGrupos(0, 10, '') — ambas coexisten sin conflicto.
 export function useGrupos(page: number, size: number, nombre: string) {
   return useQuery({
     queryKey: ['grupos', page, size, nombre],

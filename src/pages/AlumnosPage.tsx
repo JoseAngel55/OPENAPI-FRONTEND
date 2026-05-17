@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Search, Plus, Pencil, Trash2, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { useAlumnos, useCrearAlumno, useActualizarAlumno, useEliminarAlumno } from '@/hooks/useAlumnos'
+import { useGrupos } from '@/hooks/useGrupos'
 import AlumnoForm from '@/components/alumnos/AlumnoForm'
 import Modal from '@/components/ui/Modal'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
@@ -25,11 +26,14 @@ export default function AlumnosPage() {
   const actualizar = useActualizarAlumno()
   const eliminar   = useEliminarAlumno()
 
+  // ✅ FIX: cargar todos los grupos para los selects, respetando el límite del backend.
+  const { data: gruposData, isLoading: gruposLoading } = useGrupos(0, 100, '')
+  const grupos = gruposData?.content ?? []
+
   const openCreate = () => { setEditTarget(null); setModalOpen(true) }
   const openEdit   = (a: Alumno) => { setEditTarget(a); setModalOpen(true) }
   const closeModal = () => { setModalOpen(false); setEditTarget(null) }
 
-  // ✅ FIX: el form ya entrega apellido_pat, AlumnoInput ya solo tiene apellido_pat
   const handleSubmit = async (values: {
     matricula: string
     nombre: string
@@ -44,7 +48,6 @@ export default function AlumnosPage() {
       email:        values.email,
       ...(values.id_grupo ? { id_grupo: values.id_grupo } : {}),
     }
-
     if (editTarget) {
       await actualizar.mutateAsync({ id: editTarget.id_alumno, body })
     } else {
@@ -119,9 +122,7 @@ export default function AlumnosPage() {
                 {data!.content.map((a) => (
                   <tr key={a.id_alumno} className="group hover:bg-indigo-50/40 transition-colors">
                     <td className="px-4 py-3 font-mono text-xs text-slate-600">{a.matricula}</td>
-                    <td className="px-4 py-3 font-medium text-slate-800">
-                      {a.nombre} {a.apellido_pat}
-                    </td>
+                    <td className="px-4 py-3 font-medium text-slate-800">{a.nombre} {a.apellido_pat}</td>
                     <td className="px-4 py-3 text-slate-500">{a.email}</td>
                     <td className="px-4 py-3 text-slate-500">
                       {a.nombre_grupo ?? <span className="text-slate-300 italic">Sin grupo</span>}
@@ -169,7 +170,10 @@ export default function AlumnosPage() {
 
       <Modal open={modalOpen} title={editTarget ? 'Editar alumno' : 'Registrar alumno'} onClose={closeModal}>
         <AlumnoForm
+          key={editTarget?.id_alumno ?? 'new'}
           initial={editTarget}
+          grupos={grupos}
+          gruposLoading={gruposLoading}
           onSubmit={handleSubmit}
           loading={crear.isPending || actualizar.isPending}
           onCancel={closeModal}

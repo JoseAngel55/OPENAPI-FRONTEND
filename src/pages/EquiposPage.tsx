@@ -1,12 +1,11 @@
 import { useState } from 'react'
 import { Plus, Loader2, Users, Pencil, Trash2 } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useAuthStore } from '@/store/authStore'
 import { useEquipos, useCrearEquipo, useActualizarEquipo, useEliminarEquipo } from '@/hooks/useEquipos'
-import { gruposService } from '@/services/grupos.service'
+import { useGrupos } from '@/hooks/useGrupos'
 import Modal from '@/components/ui/Modal'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import type { Equipo } from '@/types/equipos.types'
@@ -17,18 +16,18 @@ const schema = z.object({
 })
 type FormValues = z.infer<typeof schema>
 
-interface Grupo {
-  id_grupo: number
-  nombre_grupo: string
-  nombre_materia: string
-  semestre: string
-}
-
+// ─── Formulario ───────────────────────────────────────────────────────────────
 function EquipoForm({
-  initial, grupos, onSubmit, loading, onCancel,
+  initial,
+  grupos,
+  gruposLoading,
+  onSubmit,
+  loading,
+  onCancel,
 }: {
   initial?: Equipo | null
-  grupos: Grupo[]
+  grupos: { id_grupo: number; nombre_grupo: string; nombre_materia: string; semestre: string }[]
+  gruposLoading: boolean
   onSubmit: (v: FormValues) => void
   loading?: boolean
   onCancel: () => void
@@ -37,31 +36,34 @@ function EquipoForm({
     resolver: zodResolver(schema),
     defaultValues: {
       nombre_equipo: initial?.nombre_equipo ?? '',
-      id_grupo: initial?.id_grupo ?? (undefined as any),
+      id_grupo:      initial?.id_grupo      ?? (undefined as any),
     },
   })
 
-  const inputCls = 'w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100 transition-all'
+  const cls = 'w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100 transition-all'
   const lbl = 'mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500'
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
+      {/* Nombre */}
       <div>
         <label className={lbl} htmlFor="eq_nombre">Nombre del equipo *</label>
-        <input id="eq_nombre" {...register('nombre_equipo')} className={inputCls}
+        <input id="eq_nombre" {...register('nombre_equipo')} className={cls}
           aria-invalid={!!errors.nombre_equipo} placeholder="Ej. Equipo Alpha" />
-        {errors.nombre_equipo && <p className="mt-1 text-xs text-red-500">{errors.nombre_equipo.message}</p>}
+        {errors.nombre_equipo && (
+          <p className="mt-1 text-xs text-red-500">{errors.nombre_equipo.message}</p>
+        )}
       </div>
 
+      {/* Grupo */}
       <div>
         <label className={lbl} htmlFor="eq_grupo">Grupo *</label>
-        {/* ✅ FIX: mostrar spinner si grupos aún no cargaron */}
-        {grupos.length === 0 ? (
+        {gruposLoading ? (
           <div className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-400">
             <Loader2 size={14} className="animate-spin" /> Cargando grupos…
           </div>
         ) : (
-          <select id="eq_grupo" {...register('id_grupo')} className={`${inputCls} bg-white`}
+          <select id="eq_grupo" {...register('id_grupo')} className={`${cls} bg-white`}
             aria-invalid={!!errors.id_grupo}>
             <option value="">Selecciona un grupo</option>
             {grupos.map((g) => (
@@ -71,15 +73,18 @@ function EquipoForm({
             ))}
           </select>
         )}
-        {errors.id_grupo && <p className="mt-1 text-xs text-red-500">{errors.id_grupo.message}</p>}
+        {errors.id_grupo && (
+          <p className="mt-1 text-xs text-red-500">{errors.id_grupo.message}</p>
+        )}
       </div>
 
+      {/* Botones */}
       <div className="flex justify-end gap-3 pt-2">
         <button type="button" onClick={onCancel}
           className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors">
           Cancelar
         </button>
-        <button type="submit" disabled={loading || grupos.length === 0}
+        <button type="submit" disabled={loading || gruposLoading}
           className="rounded-lg bg-teal-600 px-5 py-2 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-50 transition-colors">
           {loading ? 'Guardando…' : initial ? 'Actualizar' : 'Crear equipo'}
         </button>
@@ -88,15 +93,16 @@ function EquipoForm({
   )
 }
 
+// ─── Página ───────────────────────────────────────────────────────────────────
 export default function EquiposPage() {
   const user = useAuthStore((s) => s.user)
   const rol  = user?.rol ?? 'alumno'
   const canWrite  = rol === 'admin' || rol === 'docente'
   const canDelete = rol === 'admin'
 
-  const [modalOpen, setModalOpen]       = useState(false)
-  const [editTarget, setEditTarget]     = useState<Equipo | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<Equipo | null>(null)
+  const [modalOpen, setModalOpen]         = useState(false)
+  const [editTarget, setEditTarget]       = useState<Equipo | null>(null)
+  const [deleteTarget, setDeleteTarget]   = useState<Equipo | null>(null)
   const [idGrupoFiltro, setIdGrupoFiltro] = useState<number | undefined>()
 
   const { data: equipos = [], isLoading, isError } = useEquipos(
@@ -106,19 +112,13 @@ export default function EquiposPage() {
   const actualizar = useActualizarEquipo()
   const eliminar   = useEliminarEquipo()
 
-  // ✅ FIX PRINCIPAL: sin `enabled` condicional — los grupos se cargan
-  // inmediatamente al montar la página, no al abrir el modal.
-  // Así cuando el modal abre, la lista ya está en caché.
-  const { data: gruposData } = useQuery({
-    queryKey: ['grupos-select-equipos'],
-    queryFn: () => gruposService.listar({ page: 0, size: 200 }),
-    staleTime: 1000 * 60 * 5,
-  })
-  const grupos: Grupo[] = gruposData?.content ?? []
+  // ✅ FIX: cargar todos los grupos para los selects, respetando el límite del backend.
+  const { data: gruposData, isLoading: gruposLoading } = useGrupos(0, 100, '')
+  const grupos = gruposData?.content ?? []
 
-  const openCreate = () => { setEditTarget(null); setModalOpen(true) }
+  const openCreate = () => { setEditTarget(null);  setModalOpen(true) }
   const openEdit   = (eq: Equipo) => { setEditTarget(eq); setModalOpen(true) }
-  const closeModal = () => { setModalOpen(false); setEditTarget(null) }
+  const closeModal = () => { setModalOpen(false);  setEditTarget(null) }
 
   const handleSubmit = async (values: FormValues) => {
     if (editTarget) {
@@ -153,15 +153,14 @@ export default function EquiposPage() {
 
       {/* Filtro por grupo */}
       <div className="max-w-xs">
-        <select
-          value={idGrupoFiltro ?? ''}
+        <select value={idGrupoFiltro ?? ''}
           onChange={(e) => setIdGrupoFiltro(e.target.value ? Number(e.target.value) : undefined)}
           aria-label="Filtrar equipos por grupo"
           className="w-full rounded-xl border border-slate-200 bg-white py-2 px-3 text-sm outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-100 transition-all">
           <option value="">Todos los grupos</option>
           {grupos.map((g) => (
             <option key={g.id_grupo} value={g.id_grupo}>
-              {g.nombre_grupo} — {g.nombre_materia}
+              {g.nombre_grupo} — {g.nombre_materia} ({g.semestre})
             </option>
           ))}
         </select>
@@ -219,7 +218,6 @@ export default function EquiposPage() {
                               <Pencil size={14} />
                             </button>
                           )}
-                          {/* ✅ FIX: botón eliminar llama a deleteTarget, no a DELETE directo */}
                           {canDelete && (
                             <button onClick={() => setDeleteTarget(eq)} aria-label={`Eliminar ${eq.nombre_equipo}`}
                               className="rounded-lg p-1.5 text-slate-400 hover:bg-red-100 hover:text-red-600 transition-colors">
@@ -237,27 +235,26 @@ export default function EquiposPage() {
         )}
       </div>
 
-      {/* Modal crear/editar */}
+      {/* Modal — key fuerza re-montaje al cambiar el equipo editado,
+          garantizando que defaultValues del useForm tomen el valor correcto */}
       <Modal open={modalOpen} title={editTarget ? 'Editar equipo' : 'Nuevo equipo'} onClose={closeModal}>
         <EquipoForm
+          key={editTarget?.id_equipo ?? 'new'}
           initial={editTarget}
           grupos={grupos}
+          gruposLoading={gruposLoading}
           onSubmit={handleSubmit}
           loading={crear.isPending || actualizar.isPending}
           onCancel={closeModal}
         />
       </Modal>
 
-      {/* ✅ FIX: Confirm dialog — la mutación sí llama al endpoint DELETE correcto */}
       <ConfirmDialog
         open={!!deleteTarget}
         title="Eliminar equipo"
         message={`¿Eliminar el equipo "${deleteTarget?.nombre_equipo}"? Esta acción no se puede deshacer.`}
         loading={eliminar.isPending}
-        onConfirm={async () => {
-          await eliminar.mutateAsync(deleteTarget!.id_equipo)
-          setDeleteTarget(null)
-        }}
+        onConfirm={async () => { await eliminar.mutateAsync(deleteTarget!.id_equipo); setDeleteTarget(null) }}
         onCancel={() => setDeleteTarget(null)}
       />
     </div>

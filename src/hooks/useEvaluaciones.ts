@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { evaluacionesService } from '@/services/evaluaciones.service'
 import type { EvaluacionInput } from '@/types/evaluaciones.types'

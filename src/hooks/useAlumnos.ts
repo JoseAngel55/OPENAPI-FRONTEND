@@ -37,7 +37,16 @@ export function useActualizarAlumno() {
   return useMutation({
     mutationFn: ({ id, body }: { id: number; body: AlumnoInput }) =>
       alumnosService.actualizar(id, body),
-    onSuccess: () => {
+    onSuccess: (updatedAlumno) => {
+      qc.setQueriesData({ queryKey: [ALUMNOS_KEY] }, (oldData: any) => {
+        if (!oldData || !Array.isArray(oldData.content)) return oldData
+        return {
+          ...oldData,
+          content: oldData.content.map((alumno: any) =>
+            alumno.id_alumno === updatedAlumno.id_alumno ? { ...alumno, ...updatedAlumno } : alumno
+          ),
+        }
+      })
       qc.invalidateQueries({ queryKey: [ALUMNOS_KEY] })
       toast.success('Alumno actualizado correctamente')
     },
