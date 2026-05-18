@@ -27,8 +27,8 @@ export default function AlumnosPage() {
   const eliminar   = useEliminarAlumno()
 
   // ✅ FIX: cargar todos los grupos para los selects, respetando el límite del backend.
-  const { data: gruposData, isLoading: gruposLoading } = useGrupos(0, 100, '')
-  const grupos = gruposData?.content ?? []
+  //const { data: gruposData, isLoading: gruposLoading } = useGrupos(0, 100, '')
+  //const grupos = gruposData?.content ?? []
 
   const openCreate = () => { setEditTarget(null); setModalOpen(true) }
   const openEdit   = (a: Alumno) => { setEditTarget(a); setModalOpen(true) }
@@ -46,7 +46,6 @@ export default function AlumnosPage() {
       nombre:       values.nombre,
       apellido_pat: values.apellido_pat,
       email:        values.email,
-      ...(values.id_grupo ? { id_grupo: values.id_grupo } : {}),
     }
     if (editTarget) {
       await actualizar.mutateAsync({ id: editTarget.id_alumno, body })
@@ -111,7 +110,7 @@ export default function AlumnosPage() {
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50 text-left">
                   {[
-                    'Matrícula', 'Nombre', 'Correo', 'Grupo',
+                    'Matrícula', 'Nombre', 'Correo',
                     ...(canWrite || canDelete ? ['Acciones'] : [])
                   ].map((h) => (
                     <th key={h} className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">{h}</th>
@@ -124,9 +123,6 @@ export default function AlumnosPage() {
                     <td className="px-4 py-3 font-mono text-xs text-slate-600">{a.matricula}</td>
                     <td className="px-4 py-3 font-medium text-slate-800">{a.nombre} {a.apellido_pat}</td>
                     <td className="px-4 py-3 text-slate-500">{a.email}</td>
-                    <td className="px-4 py-3 text-slate-500">
-                      {a.nombre_grupo ?? <span className="text-slate-300 italic">Sin grupo</span>}
-                    </td>
                     {(canWrite || canDelete) && (
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -172,8 +168,8 @@ export default function AlumnosPage() {
         <AlumnoForm
           key={editTarget?.id_alumno ?? 'new'}
           initial={editTarget}
-          grupos={grupos}
-          gruposLoading={gruposLoading}
+          //grupos={grupos}
+          //gruposLoading={gruposLoading}
           onSubmit={handleSubmit}
           loading={crear.isPending || actualizar.isPending}
           onCancel={closeModal}

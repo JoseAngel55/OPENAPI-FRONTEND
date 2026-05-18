@@ -22,14 +22,12 @@ type FormValues = z.infer<typeof schema>
 interface AlumnoFormProps {
   initial?: Alumno | null
   /** Lista de grupos ya cargados por la página padre */
-  grupos: Grupo[]
   onSubmit: (values: FormValues) => void
   loading?: boolean
-  gruposLoading?: boolean
   onCancel: () => void
 }
 
-export default function AlumnoForm({ initial, grupos, gruposLoading, onSubmit, loading, onCancel }: AlumnoFormProps) {
+export default function AlumnoForm({ initial,  onSubmit, loading, onCancel }: AlumnoFormProps) {
   const { register, handleSubmit, reset, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
   })
@@ -94,29 +92,7 @@ export default function AlumnoForm({ initial, grupos, gruposLoading, onSubmit, l
       </div>
 
       {/* Grupo — lista proporcionada por el padre, sin query interna */}
-      <div>
-        <label className={lbl} htmlFor="id_grupo">Grupo (opcional)</label>
-        {gruposLoading ? (
-          <div className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-400">
-            <svg className="h-4 w-4 animate-spin text-slate-500" viewBox="0 0 24 24" fill="none">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-            </svg>
-            Cargando grupos…
-          </div>
-        ) : (
-          <select id="id_grupo" {...register('id_grupo')} className={field}>
-            <option value="">Sin grupo asignado</option>
-            {grupos.map((g) => (
-              <option key={g.id_grupo} value={g.id_grupo}>
-                {g.nombre_grupo}
-                {g.nombre_materia ? ` — ${g.nombre_materia}` : ''}
-                {g.semestre ? ` (${g.semestre})` : ''}
-              </option>
-            ))}
-          </select>
-        )}
-      </div>
+      
 
       {/* Botones */}
       <div className="flex justify-end gap-3 pt-2">
